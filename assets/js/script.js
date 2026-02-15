@@ -162,33 +162,43 @@ function generateTableOfContents() {
 // ===================================
 
 /**
- * Updates the active link in TOC based on scroll position
+ * Updates the active link in TOC based on which headings are visible in viewport
  */
 function updateActiveSection() {
-    const sections = document.querySelectorAll('.accordion-section');
     const tocLinks = document.querySelectorAll('.toc a');
+    if (tocLinks.length === 0) return;
 
-    if (sections.length === 0 || tocLinks.length === 0) return;
+    // Get viewport boundaries
+    const viewportTop = window.scrollY;
+    const viewportBottom = viewportTop + window.innerHeight;
 
-    // Find the current section based on scroll position
-    let currentSectionId = null;
-    const scrollPosition = window.scrollY + 150;
+    // Clear all active states first
+    tocLinks.forEach(link => link.classList.remove('active'));
 
-    sections.forEach(section => {
-        const sectionTop = section.offsetTop;
-        const sectionBottom = sectionTop + section.offsetHeight;
+    // Find all h3 headings that are currently visible
+    const allHeadings = document.querySelectorAll('.accordion-content h3');
+    const visibleHeadingIds = new Set();
 
-        if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
-            currentSectionId = section.dataset.section;
+    allHeadings.forEach(heading => {
+        const rect = heading.getBoundingClientRect();
+        const headingTop = window.scrollY + rect.top;
+        const headingBottom = headingTop + rect.height;
+
+        // Check if heading is visible in viewport
+        // A heading is visible if any part of it is within the viewport
+        if (headingBottom >= viewportTop && headingTop <= viewportBottom) {
+            visibleHeadingIds.add(heading.id);
         }
     });
 
-    // Update active class on TOC links
+    // Highlight TOC links for visible headings
     tocLinks.forEach(link => {
-        link.classList.remove('active');
-
-        if (currentSectionId && link.dataset.section === currentSectionId) {
-            link.classList.add('active');
+        const href = link.getAttribute('href');
+        if (href && href.startsWith('#')) {
+            const targetId = href.substring(1);
+            if (visibleHeadingIds.has(targetId)) {
+                link.classList.add('active');
+            }
         }
     });
 }
