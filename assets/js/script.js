@@ -162,7 +162,7 @@ function generateTableOfContents() {
 // ===================================
 
 /**
- * Updates the active link in TOC based on which headings are visible in viewport
+ * Updates the active link in TOC based on which sub-sections are visible in viewport
  */
 function updateActiveSection() {
     const tocLinks = document.querySelectorAll('.toc a');
@@ -175,23 +175,31 @@ function updateActiveSection() {
     // Clear all active states first
     tocLinks.forEach(link => link.classList.remove('active'));
 
-    // Find all h3 headings that are currently visible
-    const allHeadings = document.querySelectorAll('.accordion-content h3');
+    // Find all h3 headings and determine sub-section boundaries
+    const allHeadings = Array.from(document.querySelectorAll('.accordion-content h3'));
     const visibleHeadingIds = new Set();
 
-    allHeadings.forEach(heading => {
-        const rect = heading.getBoundingClientRect();
-        const headingTop = window.scrollY + rect.top;
-        const headingBottom = headingTop + rect.height;
+    allHeadings.forEach((heading, index) => {
+        // Sub-section starts at this h3
+        const sectionTop = window.scrollY + heading.getBoundingClientRect().top;
 
-        // Check if heading is visible in viewport
-        // A heading is visible if any part of it is within the viewport
-        if (headingBottom >= viewportTop && headingTop <= viewportBottom) {
+        // Sub-section ends at the next h3, or at the end of the accordion content
+        let sectionBottom;
+        if (index + 1 < allHeadings.length && heading.closest('.accordion-content') === allHeadings[index + 1].closest('.accordion-content')) {
+            sectionBottom = window.scrollY + allHeadings[index + 1].getBoundingClientRect().top;
+        } else {
+            const accordionContent = heading.closest('.accordion-content');
+            const rect = accordionContent.getBoundingClientRect();
+            sectionBottom = window.scrollY + rect.bottom;
+        }
+
+        // Check if any part of the sub-section is visible in the viewport
+        if (sectionBottom >= viewportTop && sectionTop <= viewportBottom) {
             visibleHeadingIds.add(heading.id);
         }
     });
 
-    // Highlight TOC links for visible headings
+    // Highlight TOC links for visible sub-sections
     tocLinks.forEach(link => {
         const href = link.getAttribute('href');
         if (href && href.startsWith('#')) {
